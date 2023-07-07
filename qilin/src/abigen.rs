@@ -1,5 +1,6 @@
-use crate::utils::constants::UNISWAP_V3_FACTORY;
+use crate::utils::constants::{UNISWAP_V3_FACTORY, UNISWAP_V3_WETH_USDT_LP_0_01};
 use anyhow::Result;
+use dotenv::dotenv;
 use ethers::core::types::Chain;
 use ethers::etherscan::Client;
 use ethers::prelude::Abigen;
@@ -39,6 +40,7 @@ pub async fn generate_abigen(
 }
 
 pub async fn generate_abigen_for_addresses() -> Result<(), Box<dyn Error>> {
+    dotenv().ok();
     let _etherscan_key = env::var("ETHERSCAN_API_KEY").unwrap();
     let etherscan_client = Client::new(Chain::Mainnet, _etherscan_key).unwrap();
 
@@ -57,7 +59,8 @@ pub async fn generate_abigen_for_addresses() -> Result<(), Box<dyn Error>> {
     // address_book.insert("UNISWAP_V3_QUOTER", UNISWAP_V3_QUOTER);
     // address_book.insert("UNISWAP_V3_QUOTER_V2", UNISWAP_V3_QUOTER_V2);
     // address_book.insert("UNISWAP_V2_FACTORY", UNISWAP_V2_FACTORY);
-    address_book.insert("UNISWAP_V3_FACTORY", UNISWAP_V3_FACTORY);
+    // address_book.insert("UNISWAP_V3_FACTORY", UNISWAP_V3_FACTORY);
+    address_book.insert("UNISWAP_V3_WETH_USDT_LP_0_01", UNISWAP_V3_WETH_USDT_LP_0_01);
 
     let mut parsed_addr;
     for (name, addr) in address_book {
@@ -83,4 +86,17 @@ pub async fn generate_abigen_for_given_address(_address: Address) -> Result<(), 
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::abigen::generate_abigen_for_addresses;
+    use anyhow::Result;
+
+    #[tokio::test]
+    async fn test_generate_abigen_for_address() -> Result<()> {
+        generate_abigen_for_addresses().await.unwrap();
+
+        Ok(())
+    }
 }
