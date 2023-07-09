@@ -76,14 +76,17 @@ impl Pool {
     }
 
     // Creates a new pool instance
-    pub async fn new(
-        provider: Arc<Provider<Ws>>,
+    pub async fn new<M>(
+        provider: Arc<M>,
         address: Address,
         token_a: Address,
         token_b: Address,
         swap_fee: U256,
         pool_variant: PoolVariant,
-    ) -> Option<Pool> {
+    ) -> Option<Pool> 
+    where
+        M: Middleware + 'static,
+    {
         let (token_0, token_1) = if token_a < token_b {
             (token_a, token_b)
         } else {

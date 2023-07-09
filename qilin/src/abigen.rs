@@ -1,4 +1,4 @@
-use crate::utils::constants::{UNISWAP_V3_FACTORY, UNISWAP_V3_WETH_USDT_LP_0_01};
+use crate::utils::constants::{UNISWAP_V3_FACTORY, UNISWAP_V3_WETH_USDT_LP_0_05};
 use anyhow::Result;
 use dotenv::dotenv;
 use ethers::core::types::Chain;
@@ -60,7 +60,7 @@ pub async fn generate_abigen_for_addresses() -> Result<(), Box<dyn Error>> {
     // address_book.insert("UNISWAP_V3_QUOTER_V2", UNISWAP_V3_QUOTER_V2);
     // address_book.insert("UNISWAP_V2_FACTORY", UNISWAP_V2_FACTORY);
     // address_book.insert("UNISWAP_V3_FACTORY", UNISWAP_V3_FACTORY);
-    address_book.insert("UNISWAP_V3_WETH_USDT_LP_0_01", UNISWAP_V3_WETH_USDT_LP_0_01);
+    address_book.insert("UNISWAP_V3_WETH_USDT_LP_0_05", UNISWAP_V3_WETH_USDT_LP_0_05);
 
     let mut parsed_addr;
     for (name, addr) in address_book {
