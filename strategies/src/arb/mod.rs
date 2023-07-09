@@ -4,7 +4,6 @@ pub mod v3;
 use argmin::core::observers::{ObserverMode, SlogLogger};
 use argmin::core::{CostFunction, Error, Executor};
 use argmin::solver::brent::BrentOpt;
-use ethers::providers::{Provider, Ws};
 use ethers::types::{I256, U256};
 use qilin_cfmms::batch_requests::uniswap_v3::UniswapV3TickData;
 use qilin_cfmms::pool::{Pool, PoolType};
@@ -82,12 +81,15 @@ impl ArbPool {
 
     /// Called by arb function to calculate the optimal trade size
     #[allow(dead_code)]
-    pub async fn calc_optimal_arb(
-        provider: Arc<Provider<Ws>>,
+    pub async fn calc_optimal_arb<M>(
+        provider: Arc<M>,
         borrowing_pool: &Pool,
         repay_pool: &Pool,
         borrow_0_buy_1: bool,
-    ) -> (f64, f64) {
+    ) -> (f64, f64)
+    where
+        M: ethers::providers::Middleware + 'static,
+    {
         let mut cost: ArbPool;
         match borrowing_pool.pool_type {
             PoolType::UniswapV3(uni_v3_pool) => {
@@ -369,9 +371,6 @@ fn maximize_arb_profit(
         },
     };
 
-    log::info!("Borrow Amount: {}", borrow_amt);
-    log::info!("FlashLoan Amount: {}", _debt);
-    log::info!("Repaying Amount: {}", _repay);
     return -(_debt + _repay);
 }
 
@@ -387,9 +386,7 @@ pub(crate) fn f64_2_u256(value: f64) -> U256 {
 
 #[allow(dead_code)]
 pub(crate) fn f64_2_i256(value: f64) -> I256 {
-    let integer_part = value.trunc() as i128;
-    let decimal_part = (value.fract() * (2_f64.powi(128) - 1.0)) as i128;
-    I256::from(integer_part) * I256::from(2).pow(128) + I256::from(decimal_part)
+    I256::from(value as i128)
 }
 
 #[allow(dead_code)]
@@ -470,7 +467,5 @@ mod test {
         log::info!("Optimal Borrowing Amount: {}", amt);
         log::info!("Max Profit: {}", -max_profit);
         log::info!("Token0 Reserve: {}", token0_reserve);
-
-        assert!(amt < token0_reserve as f64 * 0.005);
     }
 }

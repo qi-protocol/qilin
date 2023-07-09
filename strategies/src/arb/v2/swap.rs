@@ -1,11 +1,14 @@
 use crate::arb::u256_2_f64;
 use cfmms::pool::uniswap_v2::UniswapV2Pool;
-use ethers::providers::{Provider, Ws};
+use ethers::providers::Middleware;
 use ethers::types::U256;
 use std::error::Error;
 use std::sync::Arc;
 
-pub async fn get_pool_data(pool: UniswapV2Pool, provider: Arc<Provider<Ws>>) -> (u128, u128) {
+pub async fn get_pool_data<M>(pool: UniswapV2Pool, provider: Arc<M>) -> (u128, u128)
+where
+    M: Middleware + 'static,
+{
     let (token0, token1) = pool.get_reserves(provider).await.unwrap();
     (token0, token1)
 }
