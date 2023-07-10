@@ -367,7 +367,10 @@ mod test {
         let amount_out_f64 = amt_outs_given_in[1].as_u128() as f64;
         let amt_weth_out = amount_out_f64 / 10f64.powf(18 as f64);
 
-        assert_eq!((tokens_out * 1000.0) as u128, (amt_weth_out * 1000.0) as u128);
+        assert_eq!(
+            (tokens_out * 1000.0) as u128,
+            (amt_weth_out * 1000.0) as u128
+        );
 
         let reserve = v2_pool.get_reserves().call().await?;
 

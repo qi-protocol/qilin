@@ -396,9 +396,7 @@ mod test {
 
     use super::*;
     use crate::arb::f64_2_u256;
-    use crate::arb::v3::swap::{
-        get_pool_data, get_tokens_in_from_tokens_out, get_tokens_out_from_tokens_in,
-    };
+    use crate::arb::v3::swap::{get_pool_data, get_tokens_out_from_tokens_in};
     use dotenv::dotenv;
     use env_logger;
     use env_logger::Env;
@@ -484,11 +482,6 @@ mod test {
             "0xE592427A0AEce92De3Edee1F18E0157C05861564".parse::<H160>()?,
             client.clone(),
         );
-        // USDT/WETH pool
-        let v3_pool = V3_POOL::new(
-            "0x11b815efb8f581194ae79006d24e0d814b7697f6".parse::<H160>()?,
-            client.clone(),
-        );
 
         let value: U256 = U256::from(parse_units("500.0", "ether").unwrap());
         let address = client.address();
@@ -500,6 +493,15 @@ mod test {
         assert_eq!(weth_balance, value);
 
         let _ = weth_instance
+            .approve(
+                "0xE592427A0AEce92De3Edee1F18E0157C05861564".parse::<H160>()?,
+                U256::MAX,
+            )
+            .send()
+            .await?
+            .await?;
+
+        let _ = usdt_instance
             .approve(
                 "0xE592427A0AEce92De3Edee1F18E0157C05861564".parse::<H160>()?,
                 U256::MAX,
@@ -590,6 +592,60 @@ mod test {
             .unwrap();
 
         assert_eq!(usdt_balance, amount_out);
+
+        let (
+            _token0_reserve,
+            _token1_reserve,
+            fee,
+            liquidity,
+            sqrt_price_x_96,
+            tick,
+            tick_data,
+            liquidity_net,
+        ) = get_pool_data(v3_pool.clone(), false, anvil_provider.clone())
+            .await
+            .unwrap();
+
+        let amount_in = 5000.0;
+        let tokens_0_out = get_tokens_out_from_tokens_in(
+            None,
+            Some(amount_in * 10f64.powi(6)),
+            &tick,
+            &sqrt_price_x_96,
+            &liquidity,
+            liquidity_net,
+            &tick_data,
+            &fee,
+        )
+        .unwrap();
+
+        let input_param = uni_v3_swap_router_1_contract::ExactInputSingleParams {
+            token_in: "0xdAC17F958D2ee523a2206206994597C13D831ec7"
+                .parse::<H160>()
+                .unwrap(),
+            token_out: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+                .parse::<H160>()
+                .unwrap(),
+            fee: 500,
+            recipient: address.clone(),
+            deadline: U256::MAX,
+            amount_in: U256::from(5000u128 * 10u128.pow(usdt_decimals.as_u32())),
+            amount_out_minimum: U256::from(0),
+            sqrt_price_limit_x96: U256::from(0),
+        };
+
+        let _ = router_instance
+            .exact_input_single(input_param)
+            .send()
+            .await?
+            .await?;
+
+        let weth_balance = weth_instance
+            .balance_of(address)
+            .call()
+            .await?
+            .checked_div(U256::from(10).pow(U256::from(weth_decimals)))
+            .unwrap();
 
         Ok(())
     }
