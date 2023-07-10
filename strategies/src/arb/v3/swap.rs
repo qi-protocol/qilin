@@ -184,7 +184,7 @@ pub fn get_tokens_out_from_tokens_in(
                 &true,
                 fee,
             ) {
-                return Ok(-amt1);
+                return Ok(amt1);
             } else {
                 return Err(UniswapV3MathError::SwapSimulationError);
             }
@@ -324,7 +324,7 @@ fn swap(
                     step.amount_in.overflowing_add(step.fee_amount).0,
                 ))
                 .0;
-            state.amount_calculated -= I256::from_raw(step.amount_out);
+            state.amount_calculated += I256::from_raw(step.amount_out);
         } else {
             state.amount_specified_remaining = state
                 .amount_specified_remaining

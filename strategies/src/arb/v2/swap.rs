@@ -345,6 +345,32 @@ mod test {
 
         let reserve = v2_pool.get_reserves().call().await?;
 
+        let amt_in = 100.0;
+        let tokens_out = get_tokens_out_from_tokens_in(
+            None,
+            Some(amt_in),
+            &((reserve.0 / 10u128.pow(18)) as f64),
+            &((reserve.1 / 10u128.pow(6)) as f64),
+        )
+        .unwrap();
+
+        let amt_outs_given_in = router_instance
+            .get_amounts_out(
+                U256::from(100u128 * 10u128.pow(6)),
+                vec![
+                    "0xdAC17F958D2ee523a2206206994597C13D831ec7".parse::<H160>()?,
+                    "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2".parse::<H160>()?,
+                ],
+            )
+            .call()
+            .await?;
+        let amount_out_f64 = amt_outs_given_in[1].as_u128() as f64;
+        let amt_weth_out = amount_out_f64 / 10f64.powf(18 as f64);
+
+        assert_eq!((tokens_out * 1000.0) as u128, (amt_weth_out * 1000.0) as u128);
+
+        let reserve = v2_pool.get_reserves().call().await?;
+
         let amt_out = 1.0;
         let tokens_in = get_tokens_in_from_tokens_out(
             Some(amt_out),
@@ -368,6 +394,30 @@ mod test {
 
         // Assuming tiny bit of inaccuracy due to type conversion
         assert_eq!(amt_usdt_in / 10, (tokens_in / 10.0) as u128);
+
+        let amt_out = 100.0;
+        let tokens_in = get_tokens_in_from_tokens_out(
+            None,
+            Some(amt_out),
+            &((reserve.0 / 10u128.pow(18)) as f64),
+            &((reserve.1 / 10u128.pow(6)) as f64),
+        )
+        .unwrap();
+
+        let amt_in_given_out = router_instance
+            .get_amounts_in(
+                U256::from(100u128 * 10u128.pow(6)),
+                vec![
+                    "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2".parse::<H160>()?,
+                    "0xdAC17F958D2ee523a2206206994597C13D831ec7".parse::<H160>()?,
+                ],
+            )
+            .call()
+            .await?;
+        let amount_in_f64 = amt_in_given_out[0].as_u128() as f64;
+        let amt_weth_in = amount_in_f64 / 10f64.powf(18 as f64);
+
+        assert_eq!((tokens_in * 1000.0) as u128, (amt_weth_in * 1000.0) as u128);
 
         Ok(())
     }
