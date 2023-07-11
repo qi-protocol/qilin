@@ -22,6 +22,19 @@ pub struct Pool {
     pub pool_type: PoolType, // by adding pool_type, we double the struct size to 248 bytes
 }
 
+impl Default for Pool {
+    fn default() -> Self {
+        Pool {
+            address: Address::zero(),
+            token_0: Address::zero(),
+            token_1: Address::zero(),
+            swap_fee: U256::zero(),
+            pool_variant: PoolVariant::UniswapV2,
+            pool_type: PoolType::UniswapV2(UniswapV2Pool::default()),
+        }
+    }
+}
+
 impl Pool {
     pub fn new_empty_pool(
         address: Address,
