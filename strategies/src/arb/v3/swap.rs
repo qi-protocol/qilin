@@ -57,6 +57,8 @@ pub async fn get_pool_data<M>(
         i32,
         Vec<UniswapV3TickData>,
         i128,
+        u8,
+        u8,
     ),
     CFMMError<Provider<Ws>>,
 >
@@ -68,6 +70,8 @@ where
     let mut tick = uniswapv3_pool.tick;
     let liquidity = uniswapv3_pool.liquidity;
     let (reserver_0, reserve_1) = uniswapv3_pool.calculate_virtual_reserves().unwrap();
+    let token0_decimals = uniswapv3_pool.token_a_decimals;
+    let token1_decimals = uniswapv3_pool.token_b_decimals;
 
     let mut tick_data = Vec::new();
     while tick_data.len() < 500 {
@@ -104,6 +108,8 @@ where
         tick,
         tick_data,
         liquidity_net,
+        token0_decimals,
+        token1_decimals,
     ))
 }
 
@@ -315,7 +321,6 @@ fn swap(
 
             Err(_) => return Err(UniswapV3MathError::StepComputationError),
         }
-        println!("step: {:?}", step);
 
         if exact_input {
             state.amount_specified_remaining = state
@@ -337,7 +342,6 @@ fn swap(
                 ))
                 .0;
         }
-        println!("state: {:?}", state);
 
         // shift tick if we reached the next price
         if state.sqrt_price_x96 == step.sqrt_price_next_x96 {
@@ -350,7 +354,7 @@ fn swap(
                 }
 
                 state.liquidity = if liquidity_net < 0 {
-                    state.liquidity - (-liquidity_net as u128)
+                    state.liquidity.wrapping_sub(-liquidity_net as u128)
                 } else {
                     state.liquidity + (liquidity_net as u128)
                 };
@@ -367,7 +371,6 @@ fn swap(
                 Err(_e) => return Err(UniswapV3MathError::TickDataError),
             };
         };
-        println!("state: {:?}", state);
     }
 
     let (amount0, amount1) = if *zero_for_one == exact_input {
@@ -487,10 +490,7 @@ mod test {
         let address = client.address();
 
         let _ = weth_instance.deposit().value(value).send().await?.await?;
-        log::info!("WETH deposited to {}", address);
-
-        let weth_balance = weth_instance.balance_of(address).call().await?;
-        assert_eq!(weth_balance, value);
+        let _weth_balance = weth_instance.balance_of(address).call().await?;
 
         let _ = weth_instance
             .approve(
@@ -541,6 +541,8 @@ mod test {
             tick,
             tick_data,
             liquidity_net,
+            _,
+            _,
         ) = get_pool_data(v3_pool.clone(), true, anvil_provider.clone())
             .await
             .unwrap();
@@ -593,6 +595,13 @@ mod test {
 
         assert_eq!(usdt_balance, amount_out);
 
+        let weth_balance = weth_instance
+            .balance_of(address)
+            .call()
+            .await?
+            .checked_div(U256::from(10).pow(U256::from(weth_decimals)))
+            .unwrap();
+
         let (
             _token0_reserve,
             _token1_reserve,
@@ -602,6 +611,8 @@ mod test {
             tick,
             tick_data,
             liquidity_net,
+            _,
+            _,
         ) = get_pool_data(v3_pool.clone(), false, anvil_provider.clone())
             .await
             .unwrap();
@@ -618,6 +629,9 @@ mod test {
             &fee,
         )
         .unwrap();
+        let tokens_0_out = f64_2_u256(tokens_0_out)
+            .checked_div(U256::from(10).pow(U256::from(weth_decimals)))
+            .unwrap();
 
         let input_param = uni_v3_swap_router_1_contract::ExactInputSingleParams {
             token_in: "0xdAC17F958D2ee523a2206206994597C13D831ec7"
@@ -640,12 +654,14 @@ mod test {
             .await?
             .await?;
 
-        let weth_balance = weth_instance
+        let _weth_balance = weth_instance
             .balance_of(address)
             .call()
             .await?
             .checked_div(U256::from(10).pow(U256::from(weth_decimals)))
             .unwrap();
+
+        assert_eq!(_weth_balance - weth_balance, tokens_0_out);
 
         Ok(())
     }

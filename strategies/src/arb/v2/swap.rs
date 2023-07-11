@@ -5,12 +5,14 @@ use ethers::types::U256;
 use std::error::Error;
 use std::sync::Arc;
 
-pub async fn get_pool_data<M>(pool: UniswapV2Pool, provider: Arc<M>) -> (u128, u128)
+pub async fn get_pool_data<M>(pool: UniswapV2Pool, provider: Arc<M>) -> (u128, u128, u8, u8)
 where
     M: Middleware + 'static,
 {
     let (token0, token1) = pool.get_reserves(provider).await.unwrap();
-    (token0, token1)
+    let token0_decimals = pool.token_a_decimals;
+    let token1_decimals = pool.token_b_decimals;
+    (token0, token1, token0_decimals, token1_decimals)
 }
 
 /// takes either token 0 or 1 out, but not both
